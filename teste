@@ -1,0 +1,333 @@
+//EXEMPLO 01 Projeto 08(Journal)
+	private void checkForTransition(final JournalEntry journalEntry)
+			throws ObjectNotFoundException, ValidationException {
+		// search for a JournalStep that indicates a transition
+		for (final JournalEntryDetail detail : journalEntry
+				.getJournalEntryDetails()) {
+			if (detail.getJournalStepJournalStepDetail().getJournalStep()
+					.isUsedForTransition()) {
+				// is used for transition, so attempt to set program status
+				personProgramStatusService.setTransitionForStudent(journalEntry
+						.getPerson());
+
+				// exit early because no need to loop through others
+				return;
+			}
+		}
+	}
+//Refatorado CDD
+	private void checkForTransition(JournalEntry journalEntry) throws ValidationException, ObjectNotFoundException {
+		if (journalEntry.hasTransition()) {
+			// is used for transition, so attempt to set program status
+			personProgramStatusService.setTransitionForStudent(journalEntry.getPerson());
+		}
+	}
+	
+//EXEMPLO 02 Projeto 09(EarlyAlert)
+	public EarlyAlert create(@NotNull final EarlyAlert earlyAlert)
+			throws ObjectNotFoundException, ValidationException {
+		// Validate objects
+		if (earlyAlert == null) {
+			throw new IllegalArgumentException("EarlyAlert must be provided.");
+		}
+
+		if (earlyAlert.getPerson() == null) {
+			throw new ValidationException(
+					"EarlyAlert Student data must be provided.");
+		}
+
+//REFATORADO CDD
+	public EarlyAlert create(@NotNull final EarlyAlert earlyAlert)
+			throws ObjectNotFoundException, ValidationException {
+		// Validate objects
+		earlyAlertValidatorUtils.earlyAlertCannotBeNull(earlyAlert,new IllegalArgumentException("EarlyAlert must be provided."));
+		earlyAlertValidatorUtils.earlyAlertPersonCannotBeNull(earlyAlert, new ValidationException("EarlyAlert Student data must be provided."));
+
+//EXEMPLO 03 Projeto 09(EarlyAlert)
+
+	final EarlyAlert saved = getDao().save(earlyAlert);
+
+		// Send e-mail to assigned advisor (coach)
+		try {
+			sendMessageToAdvisor(saved, earlyAlert.getEmailCC());
+		} catch (final SendFailedException e) {
+			LOGGER.warn(
+					"Could not send Early Alert message to advisor.",
+					e);
+			throw new ValidationException(
+					"Early Alert notification e-mail could not be sent to advisor. Early Alert was NOT created.",
+					e);
+		}
+
+		// Send e-mail CONFIRMATION to faculty
+		try {
+			sendConfirmationMessageToFaculty(saved);
+		} catch (final SendFailedException e) {
+			LOGGER.warn(
+					"Could not send Early Alert confirmation to faculty.",
+					e);
+			throw new ValidationException(
+					"Early Alert confirmation e-mail could not be sent. Early Alert was NOT created.",
+					e);
+		}
+
+		return saved;
+
+//REFATORADO CDD
+
+		sendMessageToAdvisorService.sendMessageToAdvisor(saved,earlyAlert.getEmailCC(),LOGGER);
+		// Send e-mail CONFIRMATION to faculty
+		sendMessageToAdvisorService.sendConfirmationMessageToFaculty(saved,LOGGER);
+
+		return saved;		
+
+//EXEMPLO 04 Projeto 10(EarlyAlert)
+public Map<String, Object> fillTemplateParameters(
+			@NotNull final EarlyAlert earlyAlert) {
+		if (earlyAlert.getPerson() == null) {
+			throw new IllegalArgumentException("EarlyAlert.Person is missing.");
+		}
+
+		if (earlyAlert.getCreatedBy() == null) {
+			throw new IllegalArgumentException(
+					"EarlyAlert.CreatedBy is missing.");
+		}
+
+		if (earlyAlert.getCampus() == null) {
+			throw new IllegalArgumentException("EarlyAlert.Campus is missing.");
+		}
+
+		// ensure earlyAlert.createdBy is populated
+		if ((earlyAlert.getCreatedBy() == null)
+				|| (earlyAlert.getCreatedBy().getFirstName() == null)) {
+			if (earlyAlert.getCreatedBy() == null) {
+				throw new IllegalArgumentException(
+						"EarlyAlert.CreatedBy is missing.");
+			}
+		}
+	
+	//REFATORADI CDD
+	
+	public Map<String, Object> fillTemplateParameters(
+			@NotNull final EarlyAlert earlyAlert) {
+
+		EarlyAlertValidation.checkCampus(earlyAlert);
+		EarlyAlertValidation.checkIsNull(earlyAlert);
+		EarlyAlertValidation.checkCreatedBy(earlyAlert);
+		EarlyAlertValidation.checkNames(earlyAlert);
+		
+//EXEMPLO 05 Projeto 10(EarlyAlert)
+public void openEarlyAlert(UUID earlyAlertId)
+			throws ObjectNotFoundException, ValidationException {
+		final EarlyAlert earlyAlert = getDao().get(earlyAlertId);
+
+		// DAOs don't implement ObjectNotFoundException consistently and we'd
+		// rather they not implement it at all, so a small attempt at 'future
+		// proofing' here
+		if ( earlyAlert == null ) {
+			throw new ObjectNotFoundException(earlyAlertId, EarlyAlert.class.getName());
+		}
+
+		if ( earlyAlert.getClosedDate() == null ) {
+			return;
+		}
+
+		final SspUser sspUser = securityService.currentUser();
+		if ( sspUser == null ) {
+			throw new ValidationException("Early Alert cannot be closed by a null User.");
+		}
+
+		earlyAlert.setClosedDate(null);
+		earlyAlert.setClosedBy(null);
+
+		// This save will result in a Hib session flush, which works fine with
+		// our current usage. Future use cases might prefer to delay the
+		// flush and we can address that when the time comes. Might not even
+		// need to change anything here if it turns out nothing actually
+		// *depends* on the flush.
+		getDao().save(earlyAlert);
+	}
+//REFATORADO CDD
+	public void openEarlyAlert(UUID earlyAlertId)
+			throws ObjectNotFoundException, ValidationException {
+		final EarlyAlert earlyAlert = getDao().get(earlyAlertId);
+
+		// DAOs don't implement ObjectNotFoundException consistently and we'd
+		// rather they not implement it at all, so a small attempt at 'future
+		// proofing' here
+		EarlyAlertValidation.checkIsNullReturnNotFound(earlyAlert, earlyAlertId);
+
+		//1
+		if ( earlyAlert.getClosedDate() == null ) {
+			return;
+		}
+
+		final SspUser sspUser = securityService.currentUser();
+		EarlyAlertValidation.checkCurrentUser(sspUser);
+
+		earlyAlert.setClosedDate(null);
+		earlyAlert.setClosedBy(null);
+
+		// This save will result in a Hib session flush, which works fine with
+		// our current usage. Future use cases might prefer to delay the
+		// flush and we can address that when the time comes. Might not even
+		// need to change anything here if it turns out nothing actually
+		// *depends* on the flush.
+		getDao().save(earlyAlert);
+	}
+	
+		
+
+//EXEMPLO 06 Projeto 09(Journal)
+ for (BaseStudentReportTO person:persons) {
+			 if (!map.containsKey(person.getSchoolId()) && StringUtils.isNotBlank(person.getCoachSchoolId())) {
+				 boolean addStudent = true;
+				 if (personSearchForm.getJournalSourceIds()!=null) {
+					if (getDao().getJournalCountForPersonForJournalSourceIds(person.getId(), personSearchForm.getJournalSourceIds()) == 0) {
+						addStudent = false;
+					}
+				 }
+			 	 if (addStudent) {
+					 final JournalCaseNotesStudentReportTO entry = new JournalCaseNotesStudentReportTO(person);
+					 personsWithJournalEntries.add(entry);
+					 map.put(entry.getSchoolId(), entry);
+				 }
+ 			}
+ 		 }
+		 sortByStudentName(personsWithJournalEntries);
+		 
+
+//Refatorado CDD
+for (BaseStudentReportTO person:persons) {
+
+			 if (
+			 		!map.containsKey(person.getSchoolId())
+					&& StringUtils.isNotBlank(person.getCoachSchoolId())
+			 		&& personSearchForm.getJournalSourceIds() ==null
+					&& getDao().getJournalCountForPersonForJournalSourceIds(person.getId(), personSearchForm.getJournalSourceIds()) != 0) {
+						 final JournalCaseNotesStudentReportTO entry = new JournalCaseNotesStudentReportTO(person);
+						 personsWithJournalEntries.add(entry);
+						 map.put(entry.getSchoolId(), entry);
+			 }
+
+ 		 }
+		 
+//EXEMPLO 07 Projeto 10(EarlyAlert)
+		 
+for(UUID coachId: easByCoach.keySet()){
+			Map<String,Object> messageParams = new HashMap<String,Object>();
+
+			Collections.sort(easByCoach.get(coachId), new Comparator<EarlyAlertTO>() {
+				@Override
+				public int compare(EarlyAlertTO p1, EarlyAlertTO p2) {
+					Date p1Date = p1.getLastResponseDate();
+					if (p1Date == null)
+						p1Date = p1.getCreatedDate();
+					Date p2Date = p2.getLastResponseDate();
+					if (p2Date == null)
+						p2Date = p2.getCreatedDate();
+					return p1Date.compareTo(p2Date);
+				}
+
+			});
+
+//REFATORADO
+
+	for(UUID coachId: easByCoach.keySet()){
+			Map<String,Object> messageParams = new HashMap<>();
+
+			//1
+			//1
+			easByCoach.get(coachId).sort(MessageParamsComparator::compareParams);			
+	
+	}
+	
+//EXEMPLO 08 Projeto 12(Journal)
+	private void checkForTransition(final JournalEntry journalEntry)
+			throws ObjectNotFoundException, ValidationException {
+		// search for a JournalStep that indicates a transition
+		for (final JournalEntryDetail detail : journalEntry
+				.getJournalEntryDetails()) {
+			if (detail.getJournalStepJournalStepDetail().getJournalStep()
+					.isUsedForTransition()) {
+				// is used for transition, so attempt to set program status
+				personProgramStatusService.setTransitionForStudent(journalEntry
+						.getPerson());
+
+				// exit early because no need to loop through others
+				return;
+			}
+		}
+	}
+		 
+		 
+//REFATORADO
+    private void checkForTransition(final JournalEntry journalEntry) throws ObjectNotFoundException, ValidationException {
+        // search for a JournalStep that indicates a transition
+
+        journalEntry.getJournalEntryDetails()
+                .stream()
+                //1
+                .filter(JournalEntryDetail::isUsedForTransition)
+                .findFirst()
+                //1
+                //1
+                .ifPresent(unchecked((detail) -> personProgramStatusService.setTransitionForStudent(journalEntry.getPerson())));
+    }
+	
+//EXEMPLO 09 Projeto 12(Journal)	
+
+public void sendMessageToStudent(@NotNull final EarlyAlert earlyAlert)
+			throws ObjectNotFoundException, SendFailedException,
+			ValidationException {
+		if (earlyAlert == null) {
+			throw new IllegalArgumentException("EarlyAlert was missing.");
+		}
+
+		if (earlyAlert.getPerson() == null) {
+			throw new IllegalArgumentException("EarlyAlert.Person is missing.");
+		}
+
+		final Person person = earlyAlert.getPerson();
+		final SubjectAndBody subjAndBody = messageTemplateService
+				.createEarlyAlertToStudentMessage(fillTemplateParameters(earlyAlert));
+
+		Set<String> watcheremails = new HashSet<String>(person.getWatcherEmailAddresses());
+		// Create and queue the message
+		final Message message = messageService.createMessage(person, org.springframework.util.StringUtils.arrayToCommaDelimitedString(watcheremails
+				.toArray(new String[watcheremails.size()])),
+				subjAndBody);
+
+		LOGGER.info("Message {} created for EarlyAlert {}", message, earlyAlert);
+	}
+
+//REFATORADO
+		public void sendMessageToStudent(@NotNull final EarlyAlert earlyAlert) throws ObjectNotFoundException, SendFailedException, ValidationException {
+		emailHelper.sendMessageToStudent(earlyAlert);
+	}
+//DENTRO DO EMAILHELPER
+	
+
+  public void sendMessageToStudent(EarlyAlert earlyAlert) throws ValidationException, ObjectNotFoundException {
+        if (earlyAlert == null) {
+            throw new IllegalArgumentException("EarlyAlert was missing.");
+        }
+
+        if (earlyAlert.getPerson() == null) {
+            throw new IllegalArgumentException("EarlyAlert.Person is missing.");
+        }
+
+        final Person person = earlyAlert.getPerson();
+        final SubjectAndBody subjAndBody = messageTemplateService
+                .createEarlyAlertToStudentMessage(messageTemplateHelper.fillParameters(earlyAlert));
+
+        Set<String> watcheremails = new HashSet<String>(person.getWatcherEmailAddresses());
+        // Create and queue the message
+        final Message message = messageService.createMessage(person, org.springframework.util.StringUtils.arrayToCommaDelimitedString(watcheremails
+                        .toArray(new String[watcheremails.size()])),
+                subjAndBody);
+
+        LOGGER.info("Message {} created for EarlyAlert {}", message, earlyAlert);
+    }
+}
+		 
