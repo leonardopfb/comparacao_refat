@@ -1,0 +1,64 @@
+
+//EXEMPLO 04 Projeto 10(EarlyAlert)
+public Map<String, Object> fillTemplateParameters(
+			@NotNull final EarlyAlert earlyAlert) {
+		if (earlyAlert.getPerson() == null) {
+			throw new IllegalArgumentException("EarlyAlert.Person is missing.");
+		}
+
+		if (earlyAlert.getCreatedBy() == null) {
+			throw new IllegalArgumentException(
+					"EarlyAlert.CreatedBy is missing.");
+		}
+
+		if (earlyAlert.getCampus() == null) {
+			throw new IllegalArgumentException("EarlyAlert.Campus is missing.");
+		}
+
+		// ensure earlyAlert.createdBy is populated
+		if ((earlyAlert.getCreatedBy() == null)
+				|| (earlyAlert.getCreatedBy().getFirstName() == null)) {
+			if (earlyAlert.getCreatedBy() == null) {
+				throw new IllegalArgumentException(
+						"EarlyAlert.CreatedBy is missing.");
+			}
+		}
+	
+	//REFATORADO CDD
+	
+	public Map<String, Object> fillTemplateParameters(
+			@NotNull final EarlyAlert earlyAlert) {
+
+		EarlyAlertValidation.checkCampus(earlyAlert);
+		EarlyAlertValidation.checkIsNull(earlyAlert);
+		EarlyAlertValidation.checkCreatedBy(earlyAlert);
+		EarlyAlertValidation.checkNames(earlyAlert);
+		
+// CLASS EarlyAlertValidation 
+    ....
+    public static void checkCampus(EarlyAlert earlyAlert){
+        //1
+        if (earlyAlert.getCampus() == null) {
+            throw new IllegalArgumentException("EarlyAlert.Campus is missing.");
+        }
+    }
+    public static void checkIsNull(EarlyAlert earlyAlert) {
+          if (earlyAlert == null) {
+            throw new IllegalArgumentException("EarlyAlert was missing.");
+        }
+    }
+    public static void checkCreatedBy(EarlyAlert earlyAlert) {
+        //1
+        if (earlyAlert.getCreatedBy() == null) {
+            throw new IllegalArgumentException("EarlyAlert.CreatedBy is missing.");
+        }
+    }
+    public static void checkNames(EarlyAlert earlyAlert) {
+    if ((earlyAlert.getCreatedBy() == null) || (earlyAlert.getCreatedBy().getFirstName() == null)) {
+      //1
+      if (earlyAlert.getCreatedBy() == null) {
+        throw new IllegalArgumentException("EarlyAlert.CreatedBy is missing.");
+      }
+    }
+   }
+   ....
