@@ -116,6 +116,35 @@ public Map<String, Object> fillTemplateParameters(
 		EarlyAlertValidation.checkCreatedBy(earlyAlert);
 		EarlyAlertValidation.checkNames(earlyAlert);
 		
+// CLASS EarlyAlertValidation 
+    ....
+    public static void checkCampus(EarlyAlert earlyAlert){
+        //1
+        if (earlyAlert.getCampus() == null) {
+            throw new IllegalArgumentException("EarlyAlert.Campus is missing.");
+        }
+    }
+    public static void checkIsNull(EarlyAlert earlyAlert) {
+          if (earlyAlert == null) {
+            throw new IllegalArgumentException("EarlyAlert was missing.");
+        }
+    }
+    public static void checkCreatedBy(EarlyAlert earlyAlert) {
+        //1
+        if (earlyAlert.getCreatedBy() == null) {
+            throw new IllegalArgumentException("EarlyAlert.CreatedBy is missing.");
+        }
+    }
+    public static void checkNames(EarlyAlert earlyAlert) {
+    if ((earlyAlert.getCreatedBy() == null) || (earlyAlert.getCreatedBy().getFirstName() == null)) {
+      //1
+      if (earlyAlert.getCreatedBy() == null) {
+        throw new IllegalArgumentException("EarlyAlert.CreatedBy is missing.");
+      }
+    }
+   }
+   ....
+
 //EXEMPLO 05 Projeto 10(EarlyAlert)
 public void openEarlyAlert(UUID earlyAlertId)
 			throws ObjectNotFoundException, ValidationException {
